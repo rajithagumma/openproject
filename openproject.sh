@@ -70,11 +70,13 @@ docker rm -f openproject >/dev/null 2>&1 || true
 # Now start fresh
 docker run -d -p 8080:80 --name openproject \
   --restart unless-stopped \
-  -e OPENPROJECT_HOST__NAME=$DOMAIN \
-  -e OPENPROJECT_SECRET_KEY_BASE=$SECRET_KEY_BASE \
+  -e OPENPROJECT_HOST__NAME=work.justuju.in \
+  -e OPENPROJECT_SECRET_KEY_BASE=66136c766d434846ab46c0444e3f7428c5ae85de46da1868fc680c881f7d272e75e9f23aae8c271951d32c9c64b59adf7bfcdfa84be910c439f81b73019132bd \
+  -e OPENPROJECT_HTTPS=true \
   -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
   -v /var/lib/openproject/assets:/var/openproject/assets \
   openproject/openproject:16
+
 
 sleep 15
 echo "✅ OpenProject container started. Access it at: https://$DOMAIN"
