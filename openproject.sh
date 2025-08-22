@@ -3,7 +3,6 @@ set -euo pipefail
 
 DOMAIN="work.justuju.in"
 CERT_EMAIL="devs@justuju.in"
-SECRET_KEY=$(openssl rand -hex 64)
 
 # ------------------ INSTALL DOCKER ------------------
 sudo apt update
@@ -22,7 +21,14 @@ sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo usermod -aG docker $USER
 
-# ------------------ Install OpenProject ------------------
+# ------------------ PERSIST SECRET KEY ------------------
+if [ ! -f /etc/openproject-secret.env ]; then
+    sudo mkdir -p /etc
+    echo "SECRET_KEY_BASE=$(openssl rand -hex 64)" | sudo tee /etc/openproject-secret.env
+fi
+source /etc/openproject-secret.env
+
+# ------------------ PREPARE VOLUMES ------------------
 sudo mkdir -p /var/lib/openproject/{pgdata,assets}
 
 # ------------------ INSTALL AND CONFIGURE NGINX ------------------
@@ -56,25 +62,28 @@ sudo certbot renew --dry-run --non-interactive
 cat > /home/ubuntu/openproject-post-reboot.sh <<EOF
 #!/bin/bash
 set -euo pipefail
+source /etc/openproject-secret.env
 
-# Start OpenProject container (if not already running)
-docker rm -f openproject || true
-docker run -d -p 8080:80 --name openproject \
-  --restart unless-stopped \
-  -e OPENPROJECT_HOST__NAME=$DOMAIN \
-  -e OPENPROJECT_SECRET_KEY_BASE=$SECRET_KEY \
-  -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
-  -v /var/lib/openproject/assets:/var/openproject/assets \
-  openproject/openproject:16
+if ! docker ps -q -f name=openproject; then
+    docker run -d -p 8080:80 --name openproject \
+      --restart unless-stopped \
+      -e OPENPROJECT_HOST__NAME=$DOMAIN \
+      -e OPENPROJECT_SECRET_KEY_BASE=\$SECRET_KEY_BASE \
+      -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
+      -v /var/lib/openproject/assets:/var/openproject/assets \
+      openproject/openproject:16
+    echo "✅ OpenProject container started."
+else
+    echo "ℹ️ OpenProject already running."
+fi
 
-# Optional: wait a bit to ensure it’s up
 sleep 15
-
-echo "✅ OpenProject started. Access it at https://$DOMAIN"
+echo "✅ Access OpenProject at: https://$DOMAIN"
 EOF
 
 chmod +x /home/ubuntu/openproject-post-reboot.sh
 
 # ------------------ INFORM USER AND REBOOT ------------------
-echo "🟡 Docker group permission will apply after reboot. Rebooting now..."
+echo "🟡 Docker group permission will apply after reboot."
+echo "➡️  After reboot, run:  /home/ubuntu/openproject-post-reboot.sh"
 sudo reboot
