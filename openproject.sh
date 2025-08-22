@@ -44,19 +44,19 @@ location / {
         proxy_http_version 1.1;
 
         # WebSocket support
-        proxy_set_header Upgrade \$\$http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
 
         # Forward host & client info
-        proxy_set_header Host \$\$host;
-        proxy_set_header X-Real-IP \$\$remote_addr;
-        proxy_set_header X-Forwarded-For \$\$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
 
         # Forward Authorization header
-        proxy_set_header Authorization \$\$http_authorization;
+        proxy_set_header Authorization \$http_authorization;
 
-        proxy_cache_bypass \$\$http_upgrade;
+        proxy_cache_bypass \$http_upgrade;
     }
 }
 EOF
