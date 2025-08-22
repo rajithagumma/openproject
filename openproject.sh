@@ -25,16 +25,6 @@ sudo usermod -aG docker $USER
 # ------------------ Install OpenProject ------------------
 sudo mkdir -p /var/lib/openproject/{pgdata,assets}
 
-docker rm -f openproject || true
-
-docker run -d -p 8080:80 --name openproject \
-  --restart unless-stopped \
-  -e OPENPROJECT_HOST__NAME=$DOMAIN \
-  -e OPENPROJECT_SECRET_KEY_BASE=$SECRET_KEY \
-  -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
-  -v /var/lib/openproject/assets:/var/openproject/assets \
-  openproject/openproject:16
-
 # ------------------ INSTALL AND CONFIGURE NGINX ------------------
 sudo apt install -y nginx certbot python3-certbot-nginx
 sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
