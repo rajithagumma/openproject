@@ -64,21 +64,22 @@ cat > /home/ubuntu/openproject-post-reboot.sh <<EOF
 set -euo pipefail
 source /etc/openproject-secret.env
 
-if ! docker ps -q -f name=openproject; then
-    docker run -d -p 8080:80 --name openproject \
-      --restart unless-stopped \
-      -e OPENPROJECT_HOST__NAME=$DOMAIN \
-      -e OPENPROJECT_SECRET_KEY_BASE=\$SECRET_KEY_BASE \
-      -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
-      -v /var/lib/openproject/assets:/var/openproject/assets \
-      openproject/openproject:16
-    echo "✅ OpenProject container started."
-else
-    echo "ℹ️ OpenProject already running."
-fi
+# Remove any old container (running or stopped)
+docker rm -f openproject >/dev/null 2>&1 || true
+
+# Now start fresh
+docker run -d -p 8080:80 --name openproject \
+  --restart unless-stopped \
+  -e OPENPROJECT_HOST__NAME=$DOMAIN \
+  -e OPENPROJECT_SECRET_KEY_BASE=$SECRET_KEY_BASE \
+  -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
+  -v /var/lib/openproject/assets:/var/openproject/assets \
+  openproject/openproject:16
 
 sleep 15
-echo "✅ Access OpenProject at: https://$DOMAIN"
+echo "✅ OpenProject container started. Access it at: https://$DOMAIN"
+
+
 EOF
 
 chmod +x /home/ubuntu/openproject-post-reboot.sh
