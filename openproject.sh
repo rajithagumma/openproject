@@ -43,10 +43,21 @@ server {
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host work.justuju.in;
-        proxy_cache_bypass \$http_upgrade;
+
+        # WebSocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Forward host & client info
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+
+        # Forward Authorization header
+        proxy_set_header Authorization $http_authorization;
+
+        proxy_cache_bypass $http_upgrade;
     }
 }
 EOF
@@ -70,8 +81,8 @@ docker rm -f openproject >/dev/null 2>&1 || true
 # Now start fresh
 docker run -d -p 8080:80 --name openproject \
   --restart unless-stopped \
-  -e OPENPROJECT_HOST__NAME=work.justuju.in \
-  -e OPENPROJECT_SECRET_KEY_BASE=66136c766d434846ab46c0444e3f7428c5ae85de46da1868fc680c881f7d272e75e9f23aae8c271951d32c9c64b59adf7bfcdfa84be910c439f81b73019132bd \
+  -e OPENPROJECT_HOST__NAME=$DOMAIN \
+  -e OPENPROJECT_SECRET_KEY_BASE=$SECRET_KEY_BASE \
   -e OPENPROJECT_HTTPS=true \
   -v /var/lib/openproject/pgdata:/var/openproject/pgdata \
   -v /var/lib/openproject/assets:/var/openproject/assets \
